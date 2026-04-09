@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recuperar acesso — SKYNETchat</title>
+  <link rel="stylesheet" href="../styles/main.css"/>
+  <link rel="stylesheet" href="../styles/auth.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="auth-bg">
+    <div class="auth-glow auth-glow-1"></div>
+  </div>
+  <div class="auth-container">
+    <a href="../index.html" class="auth-brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M7 14 L14 7 L21 14 L14 21 Z" stroke="#00CFFF" stroke-width="2" fill="none"/>
+        <circle cx="14" cy="14" r="3" fill="#00CFFF"/>
+      </svg>
+      <span>SKYNETchat</span>
+    </a>
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>Recuperar acesso</h1>
+        <p>Enviaremos um link de redefinição para o seu e-mail</p>
+      </div>
+      <form id="recoveryForm" onsubmit="handleRecovery(event)">
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-input" id="email" placeholder="seu@email.com" required/>
+        </div>
+        <div id="successMsg" class="form-success" style="display:none;"></div>
+        <button type="submit" class="form-submit" id="submitBtn">
+          <span id="submitText">Enviar link</span>
+          <div id="submitSpinner" class="spinner" style="display:none;"></div>
+        </button>
+      </form>
+      <p class="auth-footer"><a href="login.html">← Voltar ao login</a></p>
+    </div>
+  </div>
+  <script>
+    async function handleRecovery(e) {
+      e.preventDefault();
+      const btn = document.getElementById("submitBtn");
+      const txt = document.getElementById("submitText");
+      const spin = document.getElementById("submitSpinner");
+      const msg = document.getElementById("successMsg");
+      btn.disabled=true; txt.style.display="none"; spin.style.display="block";
+      await new Promise(r => setTimeout(r, 1500));
+      spin.style.display="none";
+      msg.textContent = "✓ Link de recuperação enviado! Verifique seu e-mail.";
+      msg.style.display = "block";
+    }
+    function togglePass(id) {
+      const input = document.getElementById(id);
+      input.type = input.type === "password" ? "text" : "password";
+    }
+  </script>
+</body>
+</html>
