@@ -9,7 +9,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$testScript = Join-Path $scriptDir "test-run.js"
+$rootDir = (Resolve-Path (Join-Path $scriptDir "..")).Path
+$testScript = Join-Path $rootDir "test-run.js"
 
 # Resolve API key
 if (-not $ApiKey) {
