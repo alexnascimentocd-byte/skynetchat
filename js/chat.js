@@ -338,8 +338,9 @@ function autoResize(el) {
 }
 
 function toggleSendBtn() {
-  const val = document.getElementById("messageInput").value.trim();
-  document.getElementById("sendBtn").disabled = !val;
+  // Removed blocking: keep send button enabled for local usage
+  const btn = document.getElementById("sendBtn");
+  if (btn) btn.disabled = false;
 }
 
 function useSuggestion(btn) {
