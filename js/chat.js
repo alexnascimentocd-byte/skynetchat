@@ -124,15 +124,74 @@ Verifique sua API Key nas configurações ou use o modo demo.`;
   isGenerating = false;
 }
 
+// ===== GEMINI DIRECT API (browser-compatible, no CORS issues) =====
+async function callGeminiDirect(messages, model, apiKey) {
+  // Mapear nomes de modelos para IDs do Gemini
+  const modelMap = {
+    "gemini-2.5-flash-proxy": "gemini-2.5-flash",
+    "gemini-2.5-flash-puter": "gemini-2.5-flash",
+    "gemini-2.0-flash": "gemini-2.0-flash",
+    "gemini-1.5-pro": "gemini-1.5-pro"
+  };
+  
+  const geminiModel = modelMap[model] || "gemini-2.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
+  
+  // Converter mensagens para formato Gemini
+  const contents = messages.map(m => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }]
+  }));
+  
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents })
+  });
+  
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Gemini API error: ${res.status}`);
+  }
+  
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta da API.";
+}
+
 // ===== AI CALL =====
 async function callAI(messages, model) {
   const apiCfg = JSON.parse(localStorage.getItem("sn_apikey") || "null");
 
-  // Demo mode (no API key)
-  if (!apiCfg) return getDemoResponse(messages[messages.length-1]?.content || "");
+  // Se modelo é Gemini proxy e não tem key configurada, tentar API Gemini direta
+  if (!apiCfg) {
+    // Verificar se tem Gemini key salva separadamente
+    const geminiKey = localStorage.getItem("sn_gemini_key");
+    if (geminiKey) {
+      return await callGeminiDirect(messages, model, geminiKey);
+    }
+    // Modo demo
+    return getDemoResponse(messages[messages.length-1]?.content || "");
+  }
 
   const provider = apiCfg.provider;
   const key = apiCfg.key;
+
+  // Gemini proxy/puter: usar API Gemini direta se key não é "not-needed"
+  if ((provider === "gemini-proxy" || provider === "puter-proxy") && key === "not-needed") {
+    // Tentar localhost primeiro, se falhar, pedir key
+    try {
+      const localUrl = provider === "gemini-proxy" ? "http://localhost:8081" : "http://localhost:8082";
+      const ep = { url: `${localUrl}/v1/chat/completions`, header: "Bearer not-needed", streaming: true };
+      return await callAIStreaming(ep.url, ep.header, model, messages);
+    } catch {
+      throw new Error("Proxy local não disponível. Para usar de qualquer lugar, configure uma Gemini API Key gratuita em https://aistudio.google.com/apikey");
+    }
+  }
+
+  // Gemini/puter com key: usar API direta do Google
+  if (provider === "gemini-proxy" || provider === "puter-proxy" || provider === "google") {
+    return await callGeminiDirect(messages, model, key);
+  }
 
   const endpoints = {
     openai: { url: "https://api.openai.com/v1/chat/completions", header: `Bearer ${key}`, streaming: true },
@@ -514,16 +573,26 @@ function saveApiKey() {
   const freeProviders = ["gemini-proxy", "puter-proxy"];
   
   let key = document.getElementById("apiKeyInput").value.trim();
+  
+  // Para provedores pagos, key é obrigatória
+  if (!freeProviders.includes(provider) && !key) return alert("Insira a API Key");
+  
+  // Para Gemini proxy: salvar key separadamente se fornecida
   if (freeProviders.includes(provider)) {
-    key = "not-needed";
+    if (key) {
+      localStorage.setItem("sn_gemini_key", key);
+    }
+    key = key || "not-needed";
   }
-  if (!key) return alert("Insira a API Key");
+  
   localStorage.setItem("sn_apikey", JSON.stringify({ provider, key }));
   document.getElementById("apiKeyModal").style.display = "none";
   document.getElementById("apiKeyBanner").style.display = "none";
-  alert("API Key salva com sucesso!");
   
-  // Update provider badge
+  const msg = key === "not-needed" 
+    ? "Configurado! (tentando proxy local)" 
+    : "API Key salva com sucesso!";
+  alert(msg);
   updateProviderBadge(provider);
 }
 
@@ -545,10 +614,22 @@ function updateProviderBadge(provider) {
 
 function onProviderChange() {
   const provider = document.getElementById("apiProvider").value;
-  const freeProviders = ["gemini-proxy", "puter-proxy", "openrouter-free"];
+  const freeProviders = ["gemini-proxy", "puter-proxy"];
   const keyGroup = document.getElementById("apiKeyGroup");
+  const keyLabel = document.querySelector("#apiKeyGroup .form-label");
+  const keyInput = document.getElementById("apiKeyInput");
+  
   if (keyGroup) {
-    keyGroup.style.display = freeProviders.includes(provider) ? "none" : "block";
+    // Sempre mostrar campo de key (para acesso externo via GitHub Pages)
+    keyGroup.style.display = "block";
+    
+    if (freeProviders.includes(provider)) {
+      if (keyLabel) keyLabel.textContent = "Gemini API Key (opcional para acesso externo)";
+      if (keyInput) keyInput.placeholder = "Cole sua key do aistudio.google.com/apikey";
+    } else {
+      if (keyLabel) keyLabel.textContent = "API Key";
+      if (keyInput) keyInput.placeholder = "sk-...";
+    }
   }
 }
 

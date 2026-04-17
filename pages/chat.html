@@ -207,13 +207,13 @@
         <h3>Configurar API Key</h3>
         <button onclick="document.getElementById('apiKeyModal').style.display='none'" class="modal-close">×</button>
       </div>
-      <p class="modal-desc">Insira sua chave de API para utilizar os modelos reais. Sua chave é armazenada localmente e nunca enviada para nossos servidores.</p>
+      <p class="modal-desc">Insira sua chave de API para utilizar os modelos reais. Sua chave é armazenada localmente e nunca enviada para nossos servidores.<br/><br/>🔑 <strong>Gemini API Key grátis:</strong> <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#00CFFF;">aistudio.google.com/apikey</a> (grátis, sem cartão)</p>
       <div class="form-group">
         <label class="form-label">Provedor</label>
         <select class="form-input" id="apiProvider" onchange="onProviderChange()">
           <option value="gemini-proxy">🆓 Gemini Local Proxy (Grátis)</option>
           <option value="puter-proxy">🆓 Puter Proxy (Grátis)</option>
-          <option value="openrouter-free">🆓 OpenRouter Free (Grátis)</option>
+          <option value="google">🔑 Google Gemini (API Key)</option>
           <option value="openai">OpenAI (GPT-4o, GPT-4)</option>
           <option value="anthropic">Anthropic (Claude)</option>
           <option value="google">Google (Gemini)</option>
