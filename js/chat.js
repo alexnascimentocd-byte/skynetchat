@@ -135,10 +135,13 @@ async function callAI(messages, model) {
   const key = apiCfg.key;
 
   const endpoints = {
-    openai: { url: "https://api.openai.com/v1/chat/completions", header: `Bearer ${key}` },
-    anthropic: { url: "https://api.anthropic.com/v1/messages", header: key },
-    google: { url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, header: null },
-    openrouter: { url: "https://openrouter.ai/api/v1/chat/completions", header: `Bearer ${key}` }
+    openai: { url: "https://api.openai.com/v1/chat/completions", header: `Bearer ${key}`, streaming: true },
+    anthropic: { url: "https://api.anthropic.com/v1/messages", header: key, streaming: false },
+    google: { url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, header: null, streaming: false },
+    openrouter: { url: "https://openrouter.ai/api/v1/chat/completions", header: `Bearer ${key}`, streaming: true },
+    "gemini-proxy": { url: "http://localhost:8081/v1/chat/completions", header: `Bearer not-needed`, streaming: true },
+    "puter-proxy": { url: "http://localhost:8082/v1/chat/completions", header: `Bearer not-needed`, streaming: true },
+    "openrouter-free": { url: "https://openrouter.ai/api/v1/chat/completions", header: `Bearer ${key}`, streaming: true }
   };
 
   const ep = endpoints[provider] || endpoints.openrouter;
@@ -166,7 +169,11 @@ async function callAI(messages, model) {
     return data.content[0].text;
   }
 
-  // OpenAI / OpenRouter
+  // OpenAI / OpenRouter / Gemini proxy — with streaming
+  if (ep.streaming) {
+    return await callAIStreaming(ep.url, ep.header, model, messages);
+  }
+
   const res = await fetch(ep.url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": ep.header },
@@ -178,6 +185,89 @@ async function callAI(messages, model) {
   }
   const data = await res.json();
   return data.choices[0].message.content;
+}
+
+// ===== STREAMING AI CALL =====
+async function callAIStreaming(url, authHeader, model, messages) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": authHeader },
+    body: JSON.stringify({ model, messages, stream: true })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+  let typingEl = null;
+
+  // Find the typing indicator and replace with streaming message
+  const area = document.getElementById("messagesArea");
+  typingEl = document.querySelector(".typing-indicator")?.closest(".msg-group");
+
+  // Create streaming message element
+  const div = document.createElement("div");
+  div.className = "msg-group";
+  const m = document.getElementById("modelSelector").value;
+  div.innerHTML = `
+    <div class="msg-ai">
+      <div class="msg-ai-avatar">S</div>
+      <div class="msg-ai-content">
+        <div class="msg-ai-name">SKYNETchat · ${m}</div>
+        <div class="msg-ai-text" id="streamingText"></div>
+        <div class="msg-ai-actions">
+          <button class="msg-action-btn" onclick="copyMsg(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copiar
+          </button>
+          <button class="msg-action-btn" onclick="regenerate(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            Regenerar
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  if (typingEl) typingEl.remove();
+  area.appendChild(div);
+  scrollToBottom();
+
+  const streamEl = document.getElementById("streamingText");
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+          try {
+            const json = JSON.parse(data);
+            const delta = json.choices?.[0]?.delta?.content || "";
+            if (delta) {
+              fullText += delta;
+              streamEl.innerHTML = formatMarkdown(fullText);
+              scrollToBottom();
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch (e) {
+    // Stream ended
+  }
+
+  // Remove streaming ID and add final actions
+  streamEl.removeAttribute("id");
+  return fullText;
 }
 
 // ===== IMAGE GENERATION =====
@@ -309,18 +399,14 @@ function formatMarkdown(text) {
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/```([\w]*)
-([\s\S]*?)```/g, "<pre><code>$2</code></pre>")
+    .replace(/```([\w]*)\n([\s\S]*?)```/g, "<pre><code>$2</code></pre>")
     .replace(/^# (.+)$/gm, "<h3 style='font-size:18px;margin:16px 0 8px;'>$1</h3>")
     .replace(/^## (.+)$/gm, "<h4 style='font-size:16px;margin:12px 0 6px;'>$1</h4>")
     .replace(/^### (.+)$/gm, "<h5 style='font-size:14px;margin:10px 0 4px;'>$1</h5>")
     .replace(/^[-*] (.+)$/gm, "<li>$1</li>")
     .replace(/(<li>.*<\/li>)/gs, "<ul>$1</ul>")
-    .replace(/
-
-/g, "</p><p>")
-    .replace(/
-/g, "<br/>")
+    .replace(/\n\n/g, "</p><p>")
+    .replace(/\n/g, "<br/>")
     .replace(/^(.+)$/, "<p>$1</p>");
 }
 
@@ -368,7 +454,25 @@ function setMode(mode) {
 
 function onModelChange() {
   const conv = getCurrentConv();
-  if (conv) { conv.model = document.getElementById("modelSelector").value; saveConversations(); }
+  const model = document.getElementById("modelSelector").value;
+  if (conv) { conv.model = model; saveConversations(); }
+  
+  // Auto-set provider based on model selection
+  const apiCfg = JSON.parse(localStorage.getItem("sn_apikey") || "null");
+  const modelProviderMap = {
+    "gemini-2.5-flash-proxy": "gemini-proxy",
+    "gemini-2.5-flash-puter": "puter-proxy",
+    "google/gemma-3-1b-it:free": "openrouter-free",
+    "meta-llama/llama-3.3-8b-instruct:free": "openrouter-free"
+  };
+  if (modelProviderMap[model]) {
+    const newProvider = modelProviderMap[model];
+    if (!apiCfg || apiCfg.provider !== newProvider) {
+      localStorage.setItem("sn_apikey", JSON.stringify({ provider: newProvider, key: "not-needed" }));
+      document.getElementById("apiKeyBanner").style.display = "none";
+      updateProviderBadge(newProvider);
+    }
+  }
 }
 
 function toggleSidebar() {
@@ -397,12 +501,45 @@ function closeApiKeyModal(e) {
 
 function saveApiKey() {
   const provider = document.getElementById("apiProvider").value;
-  const key = document.getElementById("apiKeyInput").value.trim();
+  const freeProviders = ["gemini-proxy", "puter-proxy"];
+  
+  let key = document.getElementById("apiKeyInput").value.trim();
+  if (freeProviders.includes(provider)) {
+    key = "not-needed";
+  }
   if (!key) return alert("Insira a API Key");
   localStorage.setItem("sn_apikey", JSON.stringify({ provider, key }));
   document.getElementById("apiKeyModal").style.display = "none";
   document.getElementById("apiKeyBanner").style.display = "none";
   alert("API Key salva com sucesso!");
+  
+  // Update provider badge
+  updateProviderBadge(provider);
+}
+
+function updateProviderBadge(provider) {
+  const badge = document.getElementById("providerBadge");
+  if (!badge) return;
+  const names = {
+    "gemini-proxy": "🟢 Gemini Local",
+    "puter-proxy": "🟢 Puter Proxy", 
+    "openrouter-free": "🟡 OpenRouter Free",
+    openai: "OpenAI",
+    anthropic: "Anthropic",
+    google: "Google",
+    openrouter: "OpenRouter"
+  };
+  badge.textContent = names[provider] || provider;
+  badge.style.display = "inline-block";
+}
+
+function onProviderChange() {
+  const provider = document.getElementById("apiProvider").value;
+  const freeProviders = ["gemini-proxy", "puter-proxy", "openrouter-free"];
+  const keyGroup = document.getElementById("apiKeyGroup");
+  if (keyGroup) {
+    keyGroup.style.display = freeProviders.includes(provider) ? "none" : "block";
+  }
 }
 
 function togglePass(id) {

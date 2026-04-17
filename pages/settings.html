@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Configurações — SKYNETchat</title>
+  <link rel="stylesheet" href="../styles/main.css"/>
+  <link rel="stylesheet" href="../styles/chat.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .settings-page { max-width: 640px; margin: 0 auto; padding: 40px 20px; }
+    .settings-page h1 { font-size: 24px; margin-bottom: 8px; color: var(--text-primary); }
+    .settings-page p { color: var(--text-secondary); margin-bottom: 32px; }
+    .settings-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .settings-section h3 { font-size: 16px; margin-bottom: 16px; color: var(--text-primary); }
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 14px; color: var(--text-primary); }
+    .setting-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .setting-control select, .setting-control input { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 13px; }
+    .toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+    .toggle input { display: none; }
+    .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 12px; transition: 0.2s; }
+    .toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+    .toggle input:checked + .toggle-slider { background: #00CFFF; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; text-decoration: none; }
+    .back-link:hover { color: var(--text-primary); }
+    .danger-zone { border-color: #ff4444; }
+    .danger-zone h3 { color: #ff4444; }
+    .danger-btn { background: rgba(255,68,68,0.1); color: #ff4444; border: 1px solid #ff4444; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .danger-btn:hover { background: rgba(255,68,68,0.2); }
+  </style>
+</head>
+<body>
+  <div class="settings-page">
+    <a href="chat.html" class="back-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Voltar ao chat
+    </a>
+    <h1>⚙️ Configurações</h1>
+    <p>Personalize sua experiência no SKYNETchat</p>
+
+    <!-- Provedor Padrão -->
+    <div class="settings-section">
+      <h3>🤖 Provedor de IA</h3>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Provedor padrão</div>
+          <div class="setting-desc">Escolha o provedor usado por padrão em novas conversas</div>
+        </div>
+        <div class="setting-control">
+          <select id="defaultProvider">
+            <option value="gemini-proxy">🆓 Gemini Local Proxy</option>
+            <option value="puter-proxy">🆓 Puter Proxy</option>
+            <option value="openrouter-free">🆓 OpenRouter Free</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="google">Google</option>
+            <option value="openrouter">OpenRouter (Pago)</option>
+          </select>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Modelo padrão</div>
+          <div class="setting-desc">Modelo usado ao criar novas conversas</div>
+        </div>
+        <div class="setting-control">
+          <select id="defaultModel">
+            <option value="gemini-2.5-flash-proxy">⚡ Gemini 2.5 Flash (Proxy)</option>
+            <option value="gemini-2.5-flash-puter">⚡ Gemini 2.5 Flash (Puter)</option>
+            <option value="google/gemma-3-1b-it:free">Gemma 3 1B (Free)</option>
+            <option value="meta-llama/llama-3.3-8b-instruct:free">Llama 3.3 8B (Free)</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tema -->
+    <div class="settings-section">
+      <h3>🎨 Aparência</h3>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Tema</div>
+          <div class="setting-desc">Escolha entre tema escuro ou claro</div>
+        </div>
+        <div class="setting-control">
+          <select id="themeSelect">
+            <option value="dark">Escuro</option>
+            <option value="light">Claro</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados -->
+    <div class="settings-section">
+      <h3>💾 Dados</h3>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Exportar conversas</div>
+          <div class="setting-desc">Baixe todas as suas conversas em formato JSON</div>
+        </div>
+        <div class="setting-control">
+          <button class="btn-outline" onclick="exportConversations()" style="padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text-primary); cursor:pointer;">Exportar</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Importar conversas</div>
+          <div class="setting-desc">Restaure conversas de um arquivo JSON</div>
+        </div>
+        <div class="setting-control">
+          <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importConversations(event)">
+          <button class="btn-outline" onclick="document.getElementById('importFile').click()" style="padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text-primary); cursor:pointer;">Importar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="settings-section danger-zone">
+      <h3>⚠️ Zona de Perigo</h3>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Limpar todas as conversas</div>
+          <div class="setting-desc">Remove permanentemente todas as conversas. Esta ação não pode ser desfeita.</div>
+        </div>
+        <div class="setting-control">
+          <button class="danger-btn" onclick="clearAllConversations()">Limpar tudo</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Resetar configurações</div>
+          <div class="setting-desc">Volta todas as configurações para o padrão</div>
+        </div>
+        <div class="setting-control">
+          <button class="danger-btn" onclick="resetSettings()">Resetar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sobre -->
+    <div class="settings-section">
+      <h3>ℹ️ Sobre</h3>
+      <div class="setting-row">
+        <div class="setting-label">SKYNETchat v0.2.0</div>
+        <div class="setting-desc" style="text-align:right;">Chat de IA em Português do Brasil<br>Powered by NVIDIA · OpenAI · Anthropic · Google</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Load current settings
+    document.addEventListener("DOMContentLoaded", () => {
+      const apiCfg = JSON.parse(localStorage.getItem("sn_apikey") || "null");
+      if (apiCfg) {
+        document.getElementById("defaultProvider").value = apiCfg.provider;
+      }
+      const theme = localStorage.getItem("sn_theme") || "dark";
+      document.getElementById("themeSelect").value = theme;
+    });
+
+    // Save provider on change
+    document.getElementById("defaultProvider").addEventListener("change", (e) => {
+      const provider = e.target.value;
+      const freeProviders = ["gemini-proxy", "puter-proxy", "openrouter-free"];
+      const key = freeProviders.includes(provider) ? "not-needed" : (JSON.parse(localStorage.getItem("sn_apikey") || "{}").key || "");
+      localStorage.setItem("sn_apikey", JSON.stringify({ provider, key }));
+    });
+
+    // Theme toggle
+    document.getElementById("themeSelect").addEventListener("change", (e) => {
+      localStorage.setItem("sn_theme", e.target.value);
+      applyTheme(e.target.value);
+    });
+
+    function applyTheme(theme) {
+      if (theme === "light") {
+        document.body.style.filter = "invert(1) hue-rotate(180deg)";
+      } else {
+        document.body.style.filter = "none";
+      }
+    }
+
+    // Export conversations
+    function exportConversations() {
+      const convs = localStorage.getItem("sn_convs") || "[]";
+      const blob = new Blob([convs], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "skynetchat-conversations.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Import conversations
+    function importConversations(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (Array.isArray(data)) {
+            localStorage.setItem("sn_convs", JSON.stringify(data));
+            alert("Conversas importadas com sucesso!");
+          } else {
+            alert("Formato inválido. Esperado um array de conversas.");
+          }
+        } catch (err) {
+          alert("Erro ao importar: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Clear all conversations
+    function clearAllConversations() {
+      if (confirm("Tem certeza? Todas as conversas serão permanentemente removidas.")) {
+        localStorage.removeItem("sn_convs");
+        alert("Todas as conversas foram removidas.");
+      }
+    }
+
+    // Reset settings
+    function resetSettings() {
+      if (confirm("Resetar todas as configurações para o padrão?")) {
+        localStorage.removeItem("sn_apikey");
+        localStorage.removeItem("sn_theme");
+        document.body.style.filter = "none";
+        alert("Configurações resetadas!");
+        window.location.reload();
+      }
+    }
+
+    // Apply theme on load
+    applyTheme(localStorage.getItem("sn_theme") || "dark");
+  </script>
+</body>
+</html>

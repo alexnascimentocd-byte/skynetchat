@@ -86,6 +86,14 @@
       </button>
       <div class="model-selector-wrap">
         <select class="model-selector" id="modelSelector" onchange="onModelChange()">
+          <optgroup label="🆓 Grátis — Gemini Local">
+            <option value="gemini-2.5-flash-proxy">⚡ Gemini 2.5 Flash (Proxy Local)</option>
+            <option value="gemini-2.5-flash-puter">⚡ Gemini 2.5 Flash (Puter)</option>
+          </optgroup>
+          <optgroup label="🆓 Grátis — OpenRouter">
+            <option value="google/gemma-3-1b-it:free">Gemma 3 1B (Free)</option>
+            <option value="meta-llama/llama-3.3-8b-instruct:free">Llama 3.3 8B (Free)</option>
+          </optgroup>
           <optgroup label="OpenAI">
             <option value="gpt-4o">GPT-4o</option>
             <option value="gpt-4o-mini">GPT-4o mini</option>
@@ -109,6 +117,7 @@
         </select>
         <svg class="model-selector-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
       </div>
+      <span id="providerBadge" style="display:none; font-size:11px; padding:3px 8px; border-radius:6px; background:rgba(0,207,255,0.1); color:#00CFFF; margin-left:8px;"></span>
       <div class="topbar-actions">
         <button class="topbar-btn" onclick="clearChat()" title="Limpar conversa">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
@@ -198,14 +207,17 @@
       <p class="modal-desc">Insira sua chave de API para utilizar os modelos reais. Sua chave é armazenada localmente e nunca enviada para nossos servidores.</p>
       <div class="form-group">
         <label class="form-label">Provedor</label>
-        <select class="form-input" id="apiProvider">
+        <select class="form-input" id="apiProvider" onchange="onProviderChange()">
+          <option value="gemini-proxy">🆓 Gemini Local Proxy (Grátis)</option>
+          <option value="puter-proxy">🆓 Puter Proxy (Grátis)</option>
+          <option value="openrouter-free">🆓 OpenRouter Free (Grátis)</option>
           <option value="openai">OpenAI (GPT-4o, GPT-4)</option>
           <option value="anthropic">Anthropic (Claude)</option>
           <option value="google">Google (Gemini)</option>
           <option value="openrouter">OpenRouter (Todos os modelos)</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" id="apiKeyGroup" style="display:none;">
         <label class="form-label">API Key</label>
         <div class="input-wrap">
           <input type="password" class="form-input" id="apiKeyInput" placeholder="sk-..."/>

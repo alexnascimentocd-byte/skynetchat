@@ -1,49 +1,80 @@
-# NVIDIA Chat API Wrapper (Skynetchat)
+# SKYNETchat — Chat de IA em Português
 
-This repository contains a robust client for invoking NVIDIA's chat API.
+Chat de IA com modelos grátis e pagos, interface em PT-BR, streaming em tempo real.
 
-- Environment-based configuration (API key and endpoint URL)
-- Support for streaming responses (if API supports it)
-- Clear error handling and reusable ES module function
+## Iniciar
 
--Usage
-- Local Testing Guide (Windows and Linux)
+```bash
+# Servidor local
+node server.cjs
 
-Windows
-- Set the API key in the PowerShell session or permanently:
-  - PowerShell (session): `$Env:NVIDIA_API_KEY = "your_key"`
-  - PS script: `powershell -File scripts\run-nvidia-test.ps1 -ApiKey "your_key"`
-- Run a basic test using the harnesses:
-  - Node-based test: `node test-run.js` (requires `NVIDIA_API_KEY` to be set)
-- Test the CLI wrapper:
-  - `node run-nvidia-cli.js "Oi"`
-- Optional PowerShell automation:
-  - `powershell -File scripts/run-nvidia-test.ps1` (reads NVIDIA_API_KEY from environment)
-- Optional: verify streaming by calling `invokeNvidiaChat({ prompt: 'Resumo', stream: true })` inside your Node script where needed.
+# Ou com npm
+npm start
+```
 
-Linux/macOS (PowerShell Core or Bash)
-- Export API key for the current shell session:
-  - Bash: `export NVIDIA_API_KEY="your_key"`
-  - PowerShell Core on Linux: `$Env:NVIDIA_API_KEY = "your_key"`
-- Run the basic test:
-  - `node test-run.js` (requires `NVIDIA_API_KEY` to be set)
-- Test the CLI wrapper:
-  - `node run-nvidia-cli.js "Oi"`
-- Optional: Windows PS script can still be invoked under PowerShell Core: `pwsh -File scripts/run-nvidia-test.ps1` (reads env var if not given via -ApiKey).
+Acesse: http://localhost:3000
 
-Notes
-- If streaming is supported by the API, set `stream: true` to observe incremental chunks.
-- The provided scripts are designed for local development; no remote push is required.
-- Ensure Node.js (v18+) is installed and the project uses ES modules.
-- Set environment variables:
-  - NVIDIA_API_KEY=your_api_key
-  - NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions (optional)
-- Import and call the wrapper:
-  - import { invokeNvidiaChat } from './invoke-nvidia-api.js';
-  - await invokeNvidiaChat({ prompt: 'Oi' });
+## Provedores
 
-CLI/Testing notes
-- You can invoke the module programmatically. For quick manual testing, you can run a tiny Node script that imports the module and calls with a sample prompt.
+### Grátis (sem API key)
+| Provedor | Modelo | Como usar |
+|----------|--------|-----------|
+| Gemini Proxy | gemini-2.5-flash | Selecione no modelo, sem key |
+| Puter Proxy | gemini-2.5-flash | Selecione no modelo, sem key |
+| OpenRouter Free | Gemma 3 1B / Llama 3.3 8B | Selecione no modelo, sem key |
 
-Changelog
-- Initial scaffolding and NVIDIA wrapper added.
+### Pagos (precisa de API key)
+| Provedor | Modelos | Key |
+|----------|---------|-----|
+| OpenAI | GPT-4o, GPT-4o mini | OPENAI_API_KEY |
+| Anthropic | Claude 3.5 Sonnet | ANTHROPIC_API_KEY |
+| Google | Gemini 2.0 Flash | GOOGLE_API_KEY |
+| OpenRouter | Todos os 300+ modelos | OPENROUTER_API_KEY |
+
+## Features
+
+- Chat com streaming (respostas aparecem em tempo real)
+- Geração de imagens (DALL-E 3)
+- Múltiplos modelos de IA
+- Conversas persistentes (localStorage)
+- Exportar/importar conversas (JSON)
+- Tema escuro/claro
+- Sidebar com histórico
+- Sugestões de prompts
+
+## Estrutura
+
+```
+skynetchat/
+├── index.html          ← Landing page
+├── server.cjs          ← Servidor HTTP
+├── pages/
+│   ├── chat.html       ← Chat principal
+│   ├── settings.html   ← Configurações
+│   ├── login.html      ← Login
+│   └── signup.html     ← Cadastro
+├── js/
+│   ├── chat.js         ← Lógica do chat + streaming
+│   ├── auth.js         ← Autenticação
+│   └── landing.js      ← Landing page
+├── styles/
+│   ├── main.css        ← Reset + variáveis
+│   ├── chat.css        ← Estilos do chat
+│   └── landing.css     ← Estilos da landing
+└── invoke-nvidia-api.js ← API wrapper legacy
+```
+
+## Proxies Gemini
+
+Para usar os modelos grátis Gemini, os proxies precisam estar rodando:
+- Porta 8081: Gemini 2.5 Flash
+- Porta 8082: Puter (Gemini 2.5 Flash)
+
+Se os proxies não estiverem rodando, use OpenRouter Free como alternativa.
+
+## v1.0.0
+- Streaming em tempo real
+- Provedores grátis (Gemini proxy, OpenRouter free)
+- Interface completa em PT-BR
+- Tema escuro/claro
+- Export/import de conversas
