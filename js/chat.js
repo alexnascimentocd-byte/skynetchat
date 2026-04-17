@@ -17,8 +17,20 @@ document.addEventListener("DOMContentLoaded", () => {
   newConversation();
 
   const apiCfg = JSON.parse(localStorage.getItem("sn_apikey") || "null");
-  if (apiCfg) {
+  const geminiKey = localStorage.getItem("sn_gemini_key");
+  
+  // Mostrar banner se não tem config OU se tem proxy local sem key externa
+  if (apiCfg && apiCfg.key !== "not-needed") {
     document.getElementById("apiKeyBanner").style.display = "none";
+    updateProviderBadge(apiCfg.provider);
+  } else if (!geminiKey && apiCfg?.key === "not-needed") {
+    // Tem proxy local mas não tem key externa - mostrar banner informativo
+    document.getElementById("apiKeyBanner").innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Para usar de qualquer lugar, configure uma Gemini API Key gratuita.
+      <button onclick="openApiKeyModal()">Configurar agora</button>
+      <button onclick="this.parentElement.style.display='none'" class="banner-dismiss">×</button>
+    `;
   }
 });
 
