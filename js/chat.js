@@ -403,9 +403,8 @@ async function getDemoResponse(messages) {
   // Tentar API gratuita do Hugging Face (sem key necessária para alguns modelos)
   try {
     const hfModels = [
-      "microsoft/Phi-3-mini-4k-instruct",
       "google/gemma-2-2b-it",
-      "HuggingFaceH4/zephyr-7b-beta"
+      "microsoft/Phi-3-mini-4k-instruct"
     ];
     
     for (const model of hfModels) {
@@ -416,20 +415,22 @@ async function getDemoResponse(messages) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              inputs: `<|user|>\n${lastMsg}<|end|>\n<|assistant|>`,
-              parameters: { max_new_tokens: 500, temperature: 0.7, return_full_text: false }
-            })
+              inputs: `User: ${lastMsg}\nAssistant:`,
+              parameters: { max_new_tokens: 300, temperature: 0.7, return_full_text: false }
+            }),
+            signal: AbortSignal.timeout(8000) // 8 segundos timeout
           }
         );
         
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data[0]?.generated_text) {
-            return data[0].generated_text.trim();
+            const text = data[0].generated_text.trim();
+            if (text.length > 10) return text;
           }
         }
       } catch (e) {
-        continue; // Tentar próximo modelo
+        continue;
       }
     }
   } catch (e) {
