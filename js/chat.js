@@ -216,8 +216,8 @@ async function callAI(messages, model) {
     if (geminiKey) {
       return await callGeminiDirect(messages, model, geminiKey);
     }
-    // Modo demo
-    return getDemoResponse(messages[messages.length-1]?.content || "");
+    // Modo demo com API gratuita (Hugging Face)
+    return await getDemoResponse(messages);
   }
 
   const provider = apiCfg.provider;
@@ -396,16 +396,98 @@ Para gerar imagens reais, configure sua OpenAI API Key.`;
   return `<img src="${url}" alt="Imagem gerada" style="max-width:100%;border-radius:12px;"/>`;
 }
 
-// ===== DEMO RESPONSES =====
-function getDemoResponse(msg) {
-  const responses = [
-    "Olá! Estou no modo demo. Configure uma API Key para usar os modelos reais. Posso te ajudar com perguntas, textos, código e muito mais!",
-    "Que ótima pergunta! Em modo demo, minhas respostas são simuladas. Com uma API Key configurada, você terá acesso a GPT-4o, Claude 3.5, Gemini e outros modelos poderosos.",
-    "Entendido! Para respostas reais e precisas, vá em **Configurar API Key** no banner acima. Você pode usar a OpenAI, Anthropic, Google ou OpenRouter.",
-    "Posso te ajudar com textos, código, análises e muito mais — basta configurar sua API Key. No momento estou em modo demonstração.",
-    "Interessante! Vou simular uma resposta aqui. Com a API configurada, você teria uma resposta detalhada e precisa do modelo escolhido."
+// ===== DEMO RESPONSES (usando API gratuita) =====
+async function getDemoResponse(messages) {
+  const lastMsg = messages[messages.length-1]?.content || "";
+  
+  // Tentar API gratuita do Hugging Face (sem key necessária para alguns modelos)
+  try {
+    const hfModels = [
+      "microsoft/Phi-3-mini-4k-instruct",
+      "google/gemma-2-2b-it",
+      "HuggingFaceH4/zephyr-7b-beta"
+    ];
+    
+    for (const model of hfModels) {
+      try {
+        const response = await fetch(
+          `https://api-inference.huggingface.co/models/${model}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              inputs: `<|user|>\n${lastMsg}<|end|>\n<|assistant|>`,
+              parameters: { max_new_tokens: 500, temperature: 0.7, return_full_text: false }
+            })
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data[0]?.generated_text) {
+            return data[0].generated_text.trim();
+          }
+        }
+      } catch (e) {
+        continue; // Tentar próximo modelo
+      }
+    }
+  } catch (e) {
+    // Fallback para resposta local
+  }
+  
+  // Fallback: respostas inteligentes baseadas em contexto
+  return getSmartFallback(lastMsg);
+}
+
+function getSmartFallback(msg) {
+  const lower = msg.toLowerCase();
+  
+  // Saudações
+  if (/^(oi|olá|ola|e aí|eai|hey|hello|hi|bom dia|boa tarde|boa noite)/i.test(lower)) {
+    return `Olá! 👋 Sou o SKYNETchat, seu assistente de IA em português.\n\nPosso te ajudar com:\n• **Textos** — redação, e-mails, resumos\n• **Código** — Python, JavaScript, HTML e mais\n• **Traduções** — PT-BR ↔ EN e outros idiomas\n• **Análises** — dados, pesquisas, explicações\n• **Criatividade** — ideias, histórias, brainstorming\n\nO que você gostaria de fazer hoje?`;
+  }
+  
+  // Código
+  if (/código|program|script|função|python|javascript|html|css|sql/i.test(lower)) {
+    return `Claro! Vou te ajudar com código. Aqui vai um exemplo:\n\n\`\`\`python\n# Exemplo básico em Python\ndef saudacao(nome):\n    return f"Olá, {nome}! Bem-vindo ao SKYNETchat!"\n\nprint(saudacao("Usuário"))\n\`\`\`\n\nMe conte mais detalhes sobre o que você precisa que eu te ajudo a criar!`;
+  }
+  
+  // Tradução
+  if (/tradu[çc]|traduz|translate|inglês|english|espanhol/i.test(lower)) {
+    return `Posso te ajudar com traduções! Me envie o texto que deseja traduzir e o idioma de destino.\n\n**Exemplo:**\n- "Traduza para inglês: Bom dia, como vai?"\n- Ou simplesmente cole o texto e diga o idioma.`;
+  }
+  
+  // Resumo
+  if (/resum|sumariz|resuma|explique|explana/i.test(lower)) {
+    return `Para fazer um resumo, me envie o texto completo que deseja resumir.\n\nPosso resumir:\n• Artigos e notícias\n• Documentos acadêmicos\n• Conversas longas\n• Conteúdo de páginas web\n\nCole o texto aqui e eu faço um resumo objetivo!`;
+  }
+  
+  // Matemática
+  if (/calcul|matemát|soma|subtra|multiplic|divid|equação|fórmula/i.test(lower)) {
+    return `Posso ajudar com cálculos matemáticos!\n\n**Exemplos do que posso fazer:**\n• Operações básicas (+, -, ×, ÷)\n• Equações e inequações\n• Estatística e probabilidade\n• Geometria\n• Cálculo diferencial e integral\n\nMe diga qual cálculo precisa!`;
+  }
+  
+  // Escrita criativa
+  if (/escrev|reda[çc]|texto|história|poema|crônica/i.test(lower)) {
+    return `Adoro escrita criativa! 📝\n\nPosso te ajudar com:\n• **Redações** — ENEM, vestibular, concursos\n• **E-mails** — profissionais e pessoais\n• **Textos** — artigos, posts, descrições\n• **Criativos** — histórias, poemas, roteiros\n\nMe diga o tema, o estilo e o tamanho que deseja!`;
+  }
+  
+  // Perguntas gerais sobre o chat
+  if (/quem é você|o que você|quem és|skynetchat|sobre/i.test(lower)) {
+    return `🤖 **SKYNETchat** é um assistente de IA em português brasileiro.\n\n**Funcionalidades:**\n• Chat com modelos de IA (Gemini, GPT, Claude)\n• Geração de imagens (DALL·E 3)\n• Múltiplos provedores (grátis e pagos)\n• Conversas persistentes\n• Export/import de conversas\n• Tema escuro/claro\n\n**Provedores grátis:**\n• Gemini 2.5 Flash (via proxy local)\n• OpenRouter modelos gratuitos\n\nPara usar modelos reais, configure uma API Key nas ⚙️ configurações!`;
+  }
+  
+  // Resposta genérica inteligente
+  const templates = [
+    `Entendi sua pergunta sobre "${msg.substring(0, 50)}..."\n\nPara respostas mais detalhadas e precisas, recomendo configurar uma API Key do Gemini (grátis) nas ⚙️ configurações. Com ela, você terá acesso ao Gemini 2.5 Flash, um dos modelos mais avançados do momento.\n\nPosso tentar responder com base no que sei, ou prefere que eu te guie na configuração da API?`,
+    
+    `Ótima pergunta! 🎯\n\nNo momento estou em modo demonstração, mas posso te ajudar de várias formas:\n\n1. **Configure a API Key do Gemini** (grátis, sem cartão) — clica no ⚙️ acima\n2. Ou me faça perguntas mais específicas que eu tento responder com base no meu conhecimento\n\nO que prefere?`,
+    
+    `Interessante! Sobre "${msg.substring(0, 40)}..." posso te dizer que...\n\nPara uma resposta completa e atualizada, sugiro usar o modelo Gemini 2.5 Flash. É gratuito e muito poderoso!\n\nQuer que eu te ajude a configurar? É rápido — basta uma key grátis do Google AI Studio.`
   ];
-  return responses[Math.floor(Math.random() * responses.length)];
+  
+  return templates[Math.floor(Math.random() * templates.length)];
 }
 
 // ===== UI HELPERS =====
