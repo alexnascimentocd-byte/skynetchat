@@ -571,7 +571,14 @@ function logout() {
 }
 
 function openApiKeyModal() {
-  document.getElementById("apiKeyModal").style.display = "flex";
+  const modal = document.getElementById("apiKeyModal");
+  modal.style.display = "flex";
+  // Garantir que o campo de key apareça ao abrir
+  const keyGroup = document.getElementById("apiKeyGroup");
+  if (keyGroup) keyGroup.style.display = "block";
+  // Disparar change pra ajustar labels
+  const provider = document.getElementById("apiProvider");
+  if (provider) provider.dispatchEvent(new Event("change"));
 }
 
 function closeApiKeyModal(e) {
