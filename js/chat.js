@@ -128,9 +128,14 @@ async function sendMessage() {
     saveConversations();
   } catch (err) {
     typingEl.remove();
-    const errMsg = `⚠️ **Erro:** ${err.message || "Não foi possível conectar à API."}
-
-Verifique sua API Key nas configurações ou use o modo demo.`;
+    let errMsg = err.message || "Não foi possível conectar à API.";
+    
+    // Mensagem amigável para erro de quota
+    if (errMsg.includes("quota") || errMsg.includes("429")) {
+      errMsg = `⏳ **Limite de requisições atingido!**\n\nO plano gratuito do Gemini permite ~15 requests por minuto. Aguarde alguns segundos e tente novamente.\n\nSe persistir, gere uma nova key em [aistudio.google.com/apikey](https://aistudio.google.com/apikey)`;
+    } else {
+      errMsg = `⚠️ **Erro:** ${errMsg}\n\nVerifique sua API Key nas configurações ou use o modo demo.`;
+    }
     appendAiMessage(errMsg);
   }
   isGenerating = false;
@@ -155,19 +160,49 @@ async function callGeminiDirect(messages, model, apiKey) {
     parts: [{ text: m.content }]
   }));
   
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents })
-  });
-  
-  if (!res.ok) {
+  // Retry logic para quota exceeded
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta da API.";
+    }
+    
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Gemini API error: ${res.status}`);
+    const errMsg = err.error?.message || "";
+    
+    // Se é erro de quota, esperar e tentar de novo
+    if (res.status === 429 || errMsg.includes("quota") || errMsg.includes("rate limit")) {
+      // Extrair tempo de retry da mensagem ou usar padrão
+      const retryMatch = errMsg.match(/retry in (\d+\.?\d*)s/);
+      const waitMs = retryMatch ? parseFloat(retryMatch[1]) * 1000 : (attempt + 1) * 3000;
+      
+      if (attempt < 2) {
+        // Mostrar mensagem de espera
+        const typingEl = document.querySelector(".typing-indicator");
+        if (typingEl) {
+          typingEl.closest(".msg-group")?.querySelector(".msg-ai-text")?.remove();
+          const waitMsg = document.createElement("div");
+          waitMsg.className = "msg-ai-text";
+          waitMsg.style.color = "#fbbf24";
+          waitMsg.style.fontSize = "12px";
+          waitMsg.textContent = `⏳ Limite atingido, tentando novamente em ${Math.ceil(waitMs/1000)}s...`;
+          typingEl.closest(".msg-ai-content")?.prepend(waitMsg);
+        }
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+    }
+    
+    // Erro final
+    throw new Error(errMsg || `Gemini API error: ${res.status}`);
   }
-  
-  const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta da API.";
 }
 
 // ===== AI CALL =====
