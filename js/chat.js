@@ -476,7 +476,17 @@ function onModelChange() {
 }
 
 function toggleSidebar() {
-  document.getElementById("sidebar").classList.toggle("collapsed");
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  const isOpen = sidebar.classList.contains("open");
+  
+  if (isOpen) {
+    sidebar.classList.remove("open");
+    if (overlay) overlay.classList.remove("active");
+  } else {
+    sidebar.classList.add("open");
+    if (overlay) overlay.classList.add("active");
+  }
 }
 
 function toggleUserMenu() {
